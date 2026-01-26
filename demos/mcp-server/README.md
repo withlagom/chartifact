@@ -2,6 +2,14 @@
 
 This is an example MCP (Model Context Protocol) server that demonstrates how to use Chartifact as an interactive UI component in MCP-compatible clients.
 
+## Security Note
+
+This example uses `@modelcontextprotocol/sdk` version 1.25.2 or later, which includes important security fixes:
+- ReDoS vulnerability fix (CVE addressed in 1.25.2)
+- DNS rebinding protection (fixed in 1.24.0)
+
+Always use the latest version of the SDK in production deployments.
+
 ## Features
 
 - **Interactive Charts**: Create bar charts, line charts, and more

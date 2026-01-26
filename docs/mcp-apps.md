@@ -25,6 +25,8 @@ https://microsoft.github.io/chartifact/mcp-view/
 
 ### Example MCP Server Configuration
 
+**Security Note:** Always use the latest version of `@modelcontextprotocol/sdk` (1.25.2 or later) to ensure you have the latest security patches, including fixes for ReDoS vulnerabilities and DNS rebinding protection.
+
 Here's a simple example of an MCP server that returns Chartifact documents:
 
 ```typescript
