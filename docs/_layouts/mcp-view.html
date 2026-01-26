@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chartifact MCP Apps Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@6.2.0"></script>
+    <script src="../dist/v1/chartifact.host.umd.js"></script>
+    <link rel="stylesheet" href="{{ '/assets/css/footer.css' | relative_url }}" />
+    <link rel="stylesheet" href="../dist/v1/chartifact-toolbar.css?1" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .mcp-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        .mcp-toolbar {
+            flex-shrink: 0;
+        }
+
+        .mcp-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        .chartifact-preview {
+            width: 100%;
+            height: 100%;
+        }
+
+        #loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        #help {
+            padding: 1em;
+            display: none;
+        }
+
+        .mcp-status {
+            padding: 0.5em 1em;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="mcp-container">
+        <header class="mcp-toolbar chartifact-toolbar"></header>
+        
+        <div class="mcp-status" id="mcp-status">
+            Initializing MCP connection...
+        </div>
+
+        <div class="mcp-content">
+            <div class="chartifact-preview" id="preview"></div>
+
+            <div id="loading" style="text-align: center; padding: 50px;">
+                Waiting for content from MCP host...
+            </div>
+
+            <div id="help" style="display: none; padding: 1em;">
+                {{ content }}
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/mcp-view.js"></script>
+</body>
+
+</html>
