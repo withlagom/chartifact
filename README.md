@@ -17,7 +17,7 @@ Chartifact is a low-code document format for creating interactive, data-driven p
 
 Chartifact now supports the [Model Context Protocol (MCP) Apps](https://modelcontextprotocol.io) extension! This enables Chartifact to be embedded as an interactive UI component in MCP-compatible clients like Claude, VS Code, ChatGPT, and more.
 
-&bull; [MCP Apps Documentation](https://microsoft.github.io/chartifact/mcp-apps) &bull; [Example MCP Server](demos/mcp-server/) &bull; [MCP Viewer](https://microsoft.github.io/chartifact/mcp-view/)
+&bull; [MCP Apps Documentation](https://microsoft.github.io/chartifact/mcp-apps) &bull; [Example MCP Server](demos/mcp-server/) &bull; [MCP Viewer](https://microsoft.github.io/chartifact/view/?mcp)
 
 ## Ecosystem
 

@@ -91,7 +91,7 @@ Create a sales dashboard
 
 1. When a tool is called, the server generates a Chartifact document (in Markdown format)
 2. The document is returned as a resource with MIME type `application/x-chartifact+markdown`
-3. The MCP client loads the Chartifact viewer (`https://microsoft.github.io/chartifact/mcp-view/`)
+3. The MCP client loads the Chartifact viewer (`https://microsoft.github.io/chartifact/view/?mcp`)
 4. The viewer receives the document via JSON-RPC 2.0 protocol and renders it interactively
 
 ## Customization

@@ -6,21 +6,21 @@ Successfully implemented Model Context Protocol (MCP) Apps support for Chartifac
 
 ## What Was Accomplished
 
-### 1. Core Protocol Implementation
+### 1. Core Protocol Implementation in Host Package
 
-**Created `packages/mcp-adapter/`** - A TypeScript package implementing JSON-RPC 2.0 protocol:
-- `McpGuestMessenger` class for handling bidirectional communication
-- Full JSON-RPC 2.0 support (requests, responses, notifications)
-- Type definitions for MCP Apps protocol
-- Error handling with standard JSON-RPC error codes
+**Modified `packages/host/`** - Integrated JSON-RPC 2.0 protocol:
+- `mcp-protocol.ts` - Type definitions for JSON-RPC 2.0 messages
+- `post-receive.ts` - Enhanced to detect and handle MCP protocol messages
+- Protocol detection via `message.jsonrpc === '2.0'`
+- Automatic mode switching between MCP and standard Chartifact messages
 
-### 2. MCP-Compatible Viewer
+### 2. Single Unified Viewer
 
-**Created `docs/mcp-view/`** - A dedicated viewer for MCP Apps:
-- `index.html` - MCP viewer page with embedded Chartifact host
-- `mcp-view.js` - JavaScript implementation of MCP protocol handler
-- `test.html` - Interactive test harness for local development
-- Clean, minimal UI optimized for embedding in AI assistants
+**Modified `docs/view/`** - Enhanced existing viewer to support MCP:
+- URL parameter `?mcp` triggers MCP mode
+- Automatically disables clipboard, drag-drop, and file upload in MCP mode
+- Sends `ui/ready` notification when in MCP context
+- Clean, minimal UI for embedding
 
 ### 3. Protocol Methods Implemented
 
@@ -31,7 +31,7 @@ Successfully implemented Model Context Protocol (MCP) Apps support for Chartifac
 - `ui/clear` - Clear current content
 
 **Notifications:**
-- `ui/ready` - Viewer ready signal
+- `ui/ready` - Viewer ready signal (sent automatically in MCP mode)
 - `ui/update` - One-way content updates
 - `ui/content-mode` - Content format notifications
 
@@ -47,14 +47,12 @@ Successfully implemented Model Context Protocol (MCP) Apps support for Chartifac
 
 **Created extensive documentation:**
 - `docs/mcp-apps.md` - Main MCP Apps documentation
-- `docs/mcp-view/INTEGRATION.md` - Developer integration guide
-- `docs/mcp-view/ARCHITECTURE.md` - Architecture documentation with diagrams
 - Updated main `README.md` with MCP Apps information
 
 ## Key Features
 
 ### Security
-- **Double Sandboxing**: Viewer iframe + renderer iframe for isolation
+- **Single Sandboxing Layer**: Viewer + renderer iframe for isolation
 - **No Custom JavaScript**: Only declarative components
 - **Origin Validation**: Message origin checking
 - **XSS Protection**: Defensive CSS parsing, no raw HTML
@@ -66,10 +64,9 @@ Successfully implemented Model Context Protocol (MCP) Apps support for Chartifac
 - ✅ Error handling with standard codes
 
 ### Developer Experience
-- Clear separation of concerns
+- Single endpoint for all use cases
+- Automatic protocol detection
 - Minimal changes to existing codebase
-- Reuses existing Chartifact infrastructure
-- Interactive test harness for development
 - Comprehensive examples and documentation
 
 ## How It Works
@@ -82,9 +79,11 @@ MCP Client (Claude, VS Code, etc.)
     ├─► MCP Server (Your Tool)
     │       └─► Returns Chartifact resource
     │
-    └─► Embeds Chartifact Viewer (iframe)
+    └─► Embeds Chartifact Viewer (iframe) at /view/?mcp
             │
-            ├─► JSON-RPC 2.0 Message Handler
+            ├─► Detects ?mcp parameter → disables interactive features
+            │
+            ├─► JSON-RPC 2.0 Message Handler (in host package)
             │
             ├─► Chartifact Host (Parser & Renderer)
             │
@@ -94,7 +93,8 @@ MCP Client (Claude, VS Code, etc.)
 ### Message Flow
 
 1. **Initialization**:
-   - Viewer sends `ui/ready` notification
+   - Viewer loads with `?mcp` parameter
+   - Sends `ui/ready` notification automatically
    - Host sends `initialize` request
    - Viewer responds with capabilities
 
@@ -119,7 +119,7 @@ return {
     {
       type: 'resource',
       resource: {
-        uri: 'https://microsoft.github.io/chartifact/mcp-view/',
+        uri: 'https://microsoft.github.io/chartifact/view/?mcp',
         mimeType: 'application/x-chartifact+markdown',
         text: '# Your Chartifact Document Here'
       }
@@ -133,7 +133,7 @@ return {
 ```typescript
 // Embed the viewer
 const iframe = document.createElement('iframe');
-iframe.src = 'https://microsoft.github.io/chartifact/mcp-view/';
+iframe.src = 'https://microsoft.github.io/chartifact/view/?mcp';
 
 // Send content via JSON-RPC
 iframe.contentWindow.postMessage({
@@ -147,61 +147,25 @@ iframe.contentWindow.postMessage({
 }, 'https://microsoft.github.io');
 ```
 
-## Testing
-
-### Local Testing
-
-1. **Test Harness**: Open `docs/mcp-view/test.html` in a browser
-   - Interactive UI for sending JSON-RPC messages
-   - Pre-built examples (charts, dashboards)
-   - Message log for debugging
-
-2. **Example Server**: Run the demo MCP server
-   ```bash
-   cd demos/mcp-server
-   npm install
-   npm start
-   ```
-
-### Integration Testing
-
-Configure the example server in your MCP client:
-
-**Claude Desktop** (`claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "chartifact": {
-      "command": "node",
-      "args": ["/path/to/demos/mcp-server/index.js"]
-    }
-  }
-}
-```
-
 ## What's Unique About This Implementation
 
-1. **Leverages Existing Infrastructure**: Reuses Chartifact's proven sandboxing and rendering
-2. **Minimal Invasiveness**: New code is isolated in dedicated packages/directories
-3. **Protocol-First Design**: Clean separation between protocol and rendering
-4. **Double Security**: Two levels of iframe sandboxing for maximum safety
+1. **Single Unified Endpoint**: One viewer handles both MCP and standard use cases
+2. **Automatic Protocol Detection**: No configuration needed, just works
+3. **Minimal Code Changes**: Protocol support added to existing host package
+4. **URL-Based Mode Switching**: Simple `?mcp` parameter controls behavior
 5. **Developer-Friendly**: Comprehensive docs, examples, and test tools
 
 ## Files Modified/Created
 
 ### Core Implementation
-- `packages/mcp-adapter/` - NEW: JSON-RPC 2.0 protocol (TypeScript)
-- `docs/mcp-view/` - NEW: MCP viewer and documentation
-- `docs/_layouts/mcp-view.html` - NEW: Viewer page layout
-- `docs/assets/js/mcp-view.js` - NEW: Protocol implementation (JavaScript)
-- `demos/mcp-server/` - NEW: Example MCP server
+- `packages/host/src/mcp-protocol.ts` - NEW: JSON-RPC 2.0 types
+- `packages/host/src/post-receive.ts` - MODIFIED: MCP protocol handler
+- `docs/assets/js/view.js` - MODIFIED: MCP mode detection
 
 ### Documentation
 - `README.md` - UPDATED: Added MCP Apps section
 - `docs/mcp-apps.md` - NEW: Main MCP documentation
-- `docs/mcp-view/INTEGRATION.md` - NEW: Integration guide
-- `docs/mcp-view/ARCHITECTURE.md` - NEW: Architecture docs
-- `docs/mcp-view/test.html` - NEW: Test harness
+- `demos/mcp-server/` - NEW: Example server
 - `demos/mcp-server/README.md` - NEW: Server documentation
 
 ## Next Steps
@@ -221,8 +185,7 @@ Configure the example server in your MCP client:
 
 ## Resources
 
-- **Viewer URL**: https://microsoft.github.io/chartifact/mcp-view/
-- **Test Harness**: https://microsoft.github.io/chartifact/mcp-view/test.html
+- **Viewer URL**: https://microsoft.github.io/chartifact/view/?mcp
 - **Documentation**: https://microsoft.github.io/chartifact/mcp-apps
 - **Example Server**: `/demos/mcp-server/`
 - **Protocol Spec**: https://modelcontextprotocol.io
@@ -231,11 +194,11 @@ Configure the example server in your MCP client:
 
 This implementation provides a complete, production-ready MCP Apps integration for Chartifact. The design is:
 
-- ✅ **Secure** - Double sandboxing, no custom JavaScript execution
+- ✅ **Secure** - Sandboxing, no custom JavaScript execution
 - ✅ **Standards-Compliant** - Full JSON-RPC 2.0 and MCP Apps support
 - ✅ **Well-Documented** - Comprehensive guides for developers
-- ✅ **Easy to Use** - Working examples and test tools
-- ✅ **Minimal Impact** - No changes to existing Chartifact code
+- ✅ **Easy to Use** - Single endpoint with automatic protocol detection
+- ✅ **Minimal Impact** - Small changes to existing codebase
 - ✅ **Extensible** - Clear architecture for future enhancements
 
 The integration allows Chartifact to be embedded in any MCP-compatible client, bringing interactive data visualization and dashboards directly into AI-powered conversations.

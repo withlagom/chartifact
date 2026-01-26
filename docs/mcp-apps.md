@@ -20,8 +20,10 @@ MCP Apps is an extension to the Model Context Protocol that enables tools and re
 
 The MCP-compatible viewer is hosted at:
 ```
-https://microsoft.github.io/chartifact/mcp-view/
+https://microsoft.github.io/chartifact/view/?mcp
 ```
+
+The viewer automatically detects MCP mode via the `?mcp` URL parameter and disables interactive features like clipboard, drag-drop, and file upload.
 
 ### Example MCP Server Configuration
 
@@ -55,7 +57,7 @@ server.setRequestHandler('tools/call', async (request) => {
       content: [
         {
           type: 'ui',
-          uri: 'https://microsoft.github.io/chartifact/mcp-view/',
+          uri: 'https://microsoft.github.io/chartifact/view/?mcp',
           data: {
             method: 'ui/render',
             params: {
@@ -106,7 +108,7 @@ return {
   content: [
     {
       type: 'ui',
-      uri: 'https://microsoft.github.io/chartifact/mcp-view/',
+      uri: 'https://microsoft.github.io/chartifact/view/?mcp',
       data: {
         method: 'ui/render',
         params: {

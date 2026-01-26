@@ -151,7 +151,7 @@ Created ${chartType} chart with ${data.length} data points.
         {
           type: 'resource',
           resource: {
-            uri: 'https://microsoft.github.io/chartifact/mcp-view/',
+            uri: 'https://microsoft.github.io/chartifact/view/?mcp',
             mimeType: 'application/x-chartifact+markdown',
             text: markdown,
           },
@@ -279,7 +279,7 @@ Created ${chartType} chart with ${data.length} data points.
         {
           type: 'resource',
           resource: {
-            uri: 'https://microsoft.github.io/chartifact/mcp-view/',
+            uri: 'https://microsoft.github.io/chartifact/view/?mcp',
             mimeType: 'application/x-chartifact+markdown',
             text: markdown,
           },
