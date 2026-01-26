@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Apps Test Harness - Chartifact</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .controls {
+            width: 400px;
+            border-right: 2px solid #ddd;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .viewer-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 1em;
+            color: #333;
+        }
+
+        .control-group {
+            margin-bottom: 1.5em;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5em;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        button {
+            padding: 0.7em 1.2em;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 0.5em;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 1em;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            margin-bottom: 1em;
+            border-radius: 4px;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            border-color: #4CAF50;
+        }
+
+        .status.error {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 0.5em;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            padding: 0.25em;
+            border-bottom: 1px solid #eee;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.sent {
+            color: #1976D2;
+        }
+
+        .log-entry.received {
+            color: #388E3C;
+        }
+
+        .log-entry.error {
+            color: #D32F2F;
+        }
+
+        .examples {
+            display: flex;
+            gap: 0.5em;
+            flex-wrap: wrap;
+        }
+
+        .examples button {
+            flex: 1;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h1>🧪 MCP Apps Test Harness</h1>
+        
+        <div class="status" id="status">
+            Status: Not connected
+        </div>
+
+        <div class="control-group">
+            <label>Method:</label>
+            <select id="method">
+                <option value="initialize">initialize</option>
+                <option value="ui/render">ui/render</option>
+                <option value="ui/get-content">ui/get-content</option>
+                <option value="ui/clear">ui/clear</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Parameters (JSON):</label>
+            <textarea id="params" placeholder='{"title": "Test", "markdown": "# Hello"}'></textarea>
+        </div>
+
+        <button id="send-request">Send Request</button>
+        <button id="send-notification">Send Notification</button>
+
+        <div class="control-group" style="margin-top: 2em;">
+            <label>Quick Examples:</label>
+            <div class="examples">
+                <button onclick="loadSimpleChart()">Simple Chart</button>
+                <button onclick="loadDashboard()">Dashboard</button>
+                <button onclick="clearContent()">Clear</button>
+            </div>
+        </div>
+
+        <div class="control-group" style="margin-top: 2em;">
+            <label>Message Log:</label>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <div class="viewer-container">
+        <iframe id="viewer" src="./index.html"></iframe>
+    </div>
+
+    <script>
+        let requestId = 0;
+        const iframe = document.getElementById('viewer');
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status';
+            if (type === 'success') statusDiv.classList.add('success');
+            if (type === 'error') statusDiv.classList.add('error');
+        }
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+            const message = event.data;
+            
+            if (message && message.jsonrpc === '2.0') {
+                if ('method' in message && !('id' in message)) {
+                    // Notification
+                    log(`← NOTIFY: ${message.method}`, 'received');
+                    console.log('Received notification:', message);
+                    
+                    if (message.method === 'ui/ready') {
+                        updateStatus('Connected: Viewer is ready', 'success');
+                    }
+                } else if ('result' in message || 'error' in message) {
+                    // Response
+                    if (message.error) {
+                        log(`← ERROR: ${message.error.message}`, 'error');
+                        updateStatus(`Error: ${message.error.message}`, 'error');
+                    } else {
+                        log(`← RESPONSE: ${JSON.stringify(message.result)}`, 'received');
+                        updateStatus('Request successful', 'success');
+                    }
+                    console.log('Received response:', message);
+                }
+            }
+        });
+
+        document.getElementById('send-request').addEventListener('click', () => {
+            const method = document.getElementById('method').value;
+            const paramsText = document.getElementById('params').value;
+            
+            let params;
+            try {
+                params = paramsText ? JSON.parse(paramsText) : undefined;
+            } catch (e) {
+                updateStatus('Invalid JSON parameters', 'error');
+                log(`✗ Invalid JSON: ${e.message}`, 'error');
+                return;
+            }
+
+            const request = {
+                jsonrpc: '2.0',
+                id: ++requestId,
+                method,
+                params,
+            };
+
+            iframe.contentWindow.postMessage(request, '*');
+            log(`→ REQUEST: ${method}`, 'sent');
+            updateStatus(`Sent ${method} request...`, 'info');
+            console.log('Sent request:', request);
+        });
+
+        document.getElementById('send-notification').addEventListener('click', () => {
+            const method = document.getElementById('method').value;
+            const paramsText = document.getElementById('params').value;
+            
+            let params;
+            try {
+                params = paramsText ? JSON.parse(paramsText) : undefined;
+            } catch (e) {
+                updateStatus('Invalid JSON parameters', 'error');
+                log(`✗ Invalid JSON: ${e.message}`, 'error');
+                return;
+            }
+
+            const notification = {
+                jsonrpc: '2.0',
+                method,
+                params,
+            };
+
+            iframe.contentWindow.postMessage(notification, '*');
+            log(`→ NOTIFY: ${method}`, 'sent');
+            updateStatus(`Sent ${method} notification`, 'info');
+            console.log('Sent notification:', notification);
+        });
+
+        // Quick example functions
+        function loadSimpleChart() {
+            document.getElementById('method').value = 'ui/render';
+            document.getElementById('params').value = JSON.stringify({
+                title: 'Simple Chart',
+                markdown: `# Sales Data
+
+\`\`\`json chartifact
+{
+  "type": "chart",
+  "chartKey": "salesChart"
+}
+\`\`\`
+
+\`\`\`json chartifact
+{
+  "type": "resource",
+  "resourceType": "charts",
+  "resourceKey": "salesChart",
+  "spec": {
+    "data": {
+      "values": [
+        {"month": "Jan", "sales": 45000},
+        {"month": "Feb", "sales": 52000},
+        {"month": "Mar", "sales": 48000},
+        {"month": "Apr", "sales": 61000},
+        {"month": "May", "sales": 55000},
+        {"month": "Jun", "sales": 67000}
+      ]
+    },
+    "mark": "bar",
+    "encoding": {
+      "x": {"field": "month", "type": "nominal", "axis": {"labelAngle": 0}},
+      "y": {"field": "sales", "type": "quantitative", "title": "Sales ($)"}
+    },
+    "width": "container",
+    "height": 400
+  }
+}
+\`\`\``
+            }, null, 2);
+            document.getElementById('send-request').click();
+        }
+
+        function loadDashboard() {
+            document.getElementById('method').value = 'ui/render';
+            document.getElementById('params').value = JSON.stringify({
+                title: 'Dashboard',
+                markdown: `# Business Dashboard
+
+## Key Metrics
+
+\`\`\`json chartifact
+{
+  "type": "group",
+  "style": "display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; margin: 2em 0;"
+}
+\`\`\`
+
+\`\`\`json chartifact
+{
+  "type": "text",
+  "content": "### Revenue\\n**$328,000**"
+}
+\`\`\`
+
+\`\`\`json chartifact
+{
+  "type": "text",
+  "content": "### Expenses\\n**$214,000**"
+}
+\`\`\`
+
+\`\`\`json chartifact
+{
+  "type": "text",
+  "content": "### Profit\\n**$114,000**"
+}
+\`\`\`
+
+\`\`\`json chartifact
+{
+  "type": "endgroup"
+}
+\`\`\`
+
+## Monthly Performance
+
+\`\`\`json chartifact
+{
+  "type": "chart",
+  "chartKey": "performance"
+}
+\`\`\`
+
+\`\`\`json chartifact
+{
+  "type": "resource",
+  "resourceType": "charts",
+  "resourceKey": "performance",
+  "spec": {
+    "data": {
+      "values": [
+        {"month": "Jan", "revenue": 45000, "expenses": 32000},
+        {"month": "Feb", "revenue": 52000, "expenses": 35000},
+        {"month": "Mar", "revenue": 48000, "expenses": 33000},
+        {"month": "Apr", "revenue": 61000, "expenses": 38000},
+        {"month": "May", "revenue": 55000, "expenses": 36000},
+        {"month": "Jun", "revenue": 67000, "expenses": 40000}
+      ]
+    },
+    "transform": [
+      {"fold": ["revenue", "expenses"], "as": ["category", "amount"]}
+    ],
+    "mark": {"type": "line", "point": true},
+    "encoding": {
+      "x": {"field": "month", "type": "nominal", "axis": {"labelAngle": 0}},
+      "y": {"field": "amount", "type": "quantitative", "title": "Amount ($)"},
+      "color": {
+        "field": "category",
+        "type": "nominal",
+        "scale": {"range": ["#4CAF50", "#F44336"]}
+      }
+    },
+    "width": "container",
+    "height": 300
+  }
+}
+\`\`\``
+            }, null, 2);
+            document.getElementById('send-request').click();
+        }
+
+        function clearContent() {
+            document.getElementById('method').value = 'ui/clear';
+            document.getElementById('params').value = '';
+            document.getElementById('send-request').click();
+        }
+
+        // Wait for iframe to load
+        iframe.addEventListener('load', () => {
+            log('Iframe loaded', 'info');
+            updateStatus('Waiting for viewer ready signal...', 'info');
+        });
+
+        log('Test harness initialized', 'info');
+    </script>
+</body>
+</html>
