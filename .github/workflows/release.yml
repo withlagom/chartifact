@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'lagom-idoc-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Collect release artifacts
+        run: |
+          mkdir -p release/schema release/dist
+          cp docs/schema/idoc_v1.json release/schema/
+          cp docs/schema/idoc_v1.d.ts release/schema/
+          cp docs/dist/v1/chartifact.markdown.umd.js release/dist/
+          cp docs/dist/v1/chartifact.sandbox.umd.js release/dist/
+          cp docs/dist/v1/chartifact.compiler.umd.js release/dist/
+          cp docs/dist/v1/chartifact-reset.css release/dist/
+          cp docs/dist/v1/chartifact.host.umd.js release/dist/
+          cp docs/dist/v1/chartifact.html-wrapper.umd.js release/dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/schema/idoc_v1.json
+            release/schema/idoc_v1.d.ts
+            release/dist/chartifact.markdown.umd.js
+            release/dist/chartifact.sandbox.umd.js
+            release/dist/chartifact.compiler.umd.js
+            release/dist/chartifact-reset.css
+            release/dist/chartifact.host.umd.js
+            release/dist/chartifact.html-wrapper.umd.js

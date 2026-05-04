@@ -1,0 +1,49 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    # Quarterly: first day of Jan, Apr, Jul, Oct at 09:00 UTC
+    - cron: '0 9 1 1,4,7,10 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/microsoft/chartifact.git
+
+      - name: Fetch upstream
+        run: git fetch upstream main
+
+      - name: Create sync branch
+        run: |
+          BRANCH="sync/upstream-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          git merge upstream/main --no-edit || true
+          git push origin "$BRANCH"
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --title "chore: sync upstream microsoft/chartifact $(date +%Y-%m-%d)" \
+            --body "Automated quarterly sync from microsoft/chartifact main branch. Review for breaking changes before merging." \
+            --base main \
+            --head "$BRANCH"
